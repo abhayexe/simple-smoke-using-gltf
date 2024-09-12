@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smoke Effect with glTF (Debug)</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #info { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            color: white; 
+            font-family: monospace; 
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <script>
+        let scene, camera, renderer, smoke;
+        const infoElement = document.getElementById('info');
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Add axes helper
+            const axesHelper = new THREE.AxesHelper(5);
+            scene.add(axesHelper);
+
+            // Create smoke particles
+            const smokeTexture = new THREE.TextureLoader().load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@master/examples/textures/sprites/spark1.png');
+            const smokeMaterial = new THREE.PointsMaterial({
+                size: 1,
+                map: smokeTexture,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 1.2
+            });
+
+            const smokeGeometry = new THREE.BufferGeometry();
+            const smokeParticles = new Float32Array(1000 * 3);
+
+            for (let i = 0; i < 1000 * 3; i += 3) {
+                smokeParticles[i] = Math.random() * 10 - 5;
+                smokeParticles[i + 1] = Math.random() * 10 - 5;
+                smokeParticles[i + 2] = Math.random() * 10 - 5;
+            }
+
+            smokeGeometry.setAttribute('position', new THREE.BufferAttribute(smokeParticles, 3));
+            smoke = new THREE.Points(smokeGeometry, smokeMaterial);
+            scene.add(smoke);
+
+            camera.position.z = 15;
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Animate smoke particles
+            const positions = smoke.geometry.attributes.position.array;
+
+            for (let i = 0; i < positions.length; i += 3) {
+                positions[i] += Math.random() * 0.01 - 0.005;
+                positions[i + 1] += 0.01;
+                positions[i + 2] += Math.random() * 0.01 - 0.005;
+
+                if (positions[i + 1] > 5) {
+                    positions[i + 1] = -5;
+                }
+            }
+
+            smoke.geometry.attributes.position.needsUpdate = true;
+
+            smoke.rotation.y += 0.005;
+
+            renderer.render(scene, camera);
+
+            // Update debug info
+            infoElement.textContent = `
+                Camera position: (${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)})
+                Smoke particles: ${positions.length / 3}
+                Renderer info: ${JSON.stringify(renderer.info.render)}
+            `;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('resize', onWindowResize, false);
+
+        init();
+    </script>
+</body>
+</html>
